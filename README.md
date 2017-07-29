@@ -39,6 +39,8 @@ for file in stack.files:
     file.unshare()
 
 stack.logout()  # Important
+```
+
 ---
 
 ## API endpoints
