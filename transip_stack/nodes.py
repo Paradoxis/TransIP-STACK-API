@@ -1,6 +1,8 @@
-from posixpath import basename
+from posixpath import basename, dirname, join, realpath
 from datetime import date
 from typing import Union
+
+from webdav.exceptions import WebDavException
 
 from .exceptions import StackException
 
@@ -54,6 +56,10 @@ class StackNode:
     @property
     def name(self):
         return basename(self.path)
+
+    @property
+    def directory(self) -> str:
+        return dirname(self.path)
 
     @property
     def path(self):
@@ -115,10 +121,56 @@ class StackNode:
     def delete(self):
         """
         Deletes a file
+        Even though the node is gone, no properties are removed
+        This is done so you can use the data even after you delete it
         :return: None
         """
         data = {"action": "delete", "path": self.path, "query": ""}
         self._http.post("/api/files/update", json=[data], csrf=True)
+
+    def refresh(self):
+        """
+        Refreshes the current object properties by synchronizing it with the server
+        :return: None
+        """
+        resp = self._http.get("/api/pathinfo", params={"path": self.path})
+        self._props.update(resp.json())
+
+    def move(self, path: str):
+        """
+        Move the file / directory to another location
+        :param path: New path to send to, accepts absolute and relative paths
+        :return: None
+        """
+        if path.startswith("../"):
+            path = realpath(join(self.directory, path))
+        elif not path.startswith("/") or path.startswith("./"):
+            path = join(self.directory, path)
+
+        try:
+            self._webdav.move(self.path, path)
+            self.refresh()
+
+        except WebDavException as e:
+            raise StackException(e)
+
+    def favorite(self):
+        """
+        Mark a file or directory as favorited
+        :return: None
+        """
+        data = {"action": "delete", "path": self.path, "query": "", "active": True}
+        resp = self._http.post("/api/files/update", json=[data], csrf=True)
+        self._props.update(resp.json()[0])
+
+    def unfavorite(self):
+        """
+        Un-mark a file or directory as favorited
+        :return: None
+        """
+        data = {"action": "delete", "path": self.path, "query": "", "active": False}
+        resp = self._http.post("/api/files/update", json=[data], csrf=True)
+        self._props.update(resp.json()[0])
 
 
 class StackDirectory(StackNode):

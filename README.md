@@ -117,11 +117,27 @@ stack.logout()  # Important
         * *Not sure why this is added, possibly for mass file deletion*
 
 ### Getting file information
-* GET `/api/file`
+* GET `/api/pathinfo`
   * Query
     * path: str = "<full path to file>"
   * Body
     * *None*
+
+### Marking a file as favorited
+* POST `/api/files/update`
+ * Headers
+   * CSRF-Token
+  * Query
+    * *None*
+  * Body (JSON)
+    * Array of:
+      * action: str = "favorite"
+      * active: bool
+        * True = Favorited
+        * False = Unfavorited
+      * path: str = "<full path to file, see node.path>"
+      * query: str = ""
+        * *Not sure why this is added, possibly for mass file deletion*
 
 ## Headers
 * CSRF-Token
