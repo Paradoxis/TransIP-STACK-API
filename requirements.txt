@@ -1,0 +1,11 @@
+argcomplete==1.8.2
+beautifulsoup4==4.6.0
+bs4==0.0.1
+certifi==2017.7.27.1
+chardet==3.0.4
+idna==2.5
+lxml==3.8.0
+pycurl==7.43.0
+requests==2.18.2
+urllib3==1.22
+webdavclient==1.0.8
