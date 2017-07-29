@@ -24,6 +24,21 @@ with Stack(username="foo", password="bar", hostname="stack.example.com") as stac
         print(file.share_url)
 ```
 
+Without context managers:
+
+```python
+from transip_stack import Stack
+
+
+stack = Stack(username="foo", password="bar", hostname="stack.example.com")
+stack.login()
+
+stack.cd("/foo")
+
+for file in stack.files:
+    file.unshare()
+
+stack.logout()  # Important
 ---
 
 ## API endpoints
