@@ -84,7 +84,7 @@ class Stack:
         Log out of STACK
         :return: None
         """
-        self.http.get("/logout")
+        self.http.get("/logout", allow_redirects=False)
         self.__logged_in = False
         logging.debug("Logged out successfully")
 
@@ -158,10 +158,7 @@ class Stack:
         :return: Iterator
         """
         for node in nodes:
-            if node.get("mimetype") == "httpd/unix-directory":
-                yield StackDirectory(stack=self, props=node)
-            else:
-                yield StackFile(stack=self, props=node)
+            yield self.__node_to_object(node)
 
     @property
     def files(self) -> Iterable[StackFile]:
@@ -179,11 +176,23 @@ class Stack:
         """
         yield from (node for node in self.ls() if isinstance(node, StackDirectory))
 
-    def file(self, name: str) -> StackFile:
+    def __node_to_object(self, node: dict):
         """
-        Get a file by name
-        :param name: Name to find
-        :return: File object
+        Convert a stack node to the correct object by
+        checking it's MIME type
+        :param node: Node properties
+        :return: Stack node
+        """
+        if node.get("mimetype") == "httpd/unix-directory":
+            return StackDirectory(stack=self, props=node)
+        else:
+            return StackFile(stack=self, props=node)
+
+    def __node(self, name: str):
+        """
+        Get a node by name
+        :param name: Node name to find
+        :return: Node object
         """
         if name.startswith("/"):
             path = name
@@ -191,7 +200,33 @@ class Stack:
             path = join(self.__cwd, name)
 
         resp = self.http.get("/api/pathinfo", params={"path": path})
-        return StackFile(stack=self, props=resp.json())
+        return self.__node_to_object(resp.json())
+
+    def file(self, name: str) -> StackFile:
+        """
+        Get a file by name
+        :param name: Name to find
+        :return: File object
+        """
+        node = self.__node(name)
+
+        if isinstance(node, StackDirectory):
+            raise StackException("File '{}' is a directory!".format(name))
+
+        return node
+
+    def directory(self, name: str) -> StackDirectory:
+        """
+        Get a directory by name
+        :param name: Name to find
+        :return: Directory object
+        """
+        node = self.__node(name)
+
+        if isinstance(node, StackFile):
+            raise StackException("Directory '{}' is a file!".format(name))
+
+        return node
 
     def upload(self, file, path: str=None, name: str=None) -> StackFile:
         """
@@ -277,6 +312,25 @@ class Stack:
             self.webdav.download_to(buffer, file.lstrip("/"))
             buffer.seek(0)
             return buffer
+
+        except WebDavException as e:
+            raise StackException(e)
+
+    def mkdir(self, name: str, path: str=None) -> StackDirectory:
+        """
+        Make a new directory
+        :param name: Directory name to create
+        :param path: Directory to create it in
+        :return: StackDirectory
+        """
+        if not path:
+            path = self.__cwd
+
+        path = join(path, name)
+
+        try:
+            self.webdav.mkdir(path)
+            return self.directory(path)
 
         except WebDavException as e:
             raise StackException(e)
