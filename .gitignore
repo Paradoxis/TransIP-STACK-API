@@ -1,4 +1,6 @@
 .idea/
 **/*.pyc
 venv/
+test/
+dist/
 test.py

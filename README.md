@@ -1,10 +1,30 @@
 # TransIP STACK API
-Unofficial wrapper for the TransIP STACK API, written in Python 3.
+Unofficial wrapper for the TransIP STACK API, written in Python 3
 
 ## Installation
-PIP installation coming soon, for now just clone the repository
+To install the library, simply install it using pip:
+
+```
+$ pip install transip-stack-api
+```
 
 ## Usage
+To use the project, simply import the library into your project like so:
+
+```python
+from transip_stack import Stack, StackException
+
+
+with Stack(username="foo", password="bar", hostname="stack.example.com") as stack:
+    try:
+        url = stack.upload("local-foo.txt", "remote-foo.txt").share()
+        print("[+] You can download remote-foo.txt at: {}".format(url))
+            
+    except StackException as e:
+        print("[!] Error: {}".format(e))
+```
+
+## Examples
 
 ```python
 from io import BytesIO
