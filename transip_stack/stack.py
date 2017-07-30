@@ -125,7 +125,7 @@ class Stack:
         if not path:
             path = self.__cwd
 
-        for node in self.ls(path, order=order):
+        for node in self.ls(path=path, order=order):
             if isinstance(node, StackDirectory):
                 yield from self.walk(node.path, order=order)
             else:

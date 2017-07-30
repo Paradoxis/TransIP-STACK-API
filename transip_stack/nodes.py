@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from posixpath import basename, dirname, join, realpath
 from datetime import date
 from typing import Union
@@ -58,8 +59,9 @@ class StackNode:
         return basename(self.path)
 
     @property
-    def directory(self) -> str:
-        return dirname(self.path)
+    @abstractmethod
+    def directory(self):
+        raise NotImplementedError()
 
     @property
     def path(self):
@@ -178,8 +180,16 @@ class StackDirectory(StackNode):
     Instance of a directory on stack
     """
 
+    @property
+    def directory(self):
+        return self.path
+
 
 class StackFile(StackNode):
     """
     Instance of a file on stack
     """
+
+    @property
+    def directory(self) -> str:
+        return dirname(self.path)
