@@ -1,7 +1,7 @@
 import logging
 from io import IOBase, BytesIO, BufferedIOBase
 from typing import Union, Iterable
-from posixpath import join
+from posixpath import join, realpath
 
 from webdav.client import Client as WebdavClient
 from webdav.exceptions import WebDavException
@@ -98,6 +98,14 @@ class Stack:
         """
         return self.__cwd
 
+    @property
+    def pwd(self) -> str:
+        """
+        Alias of cwd
+        :return: Current working directory
+        """
+        return self.__cwd
+
     def __files(self, path: str, offset: int, query: str="", order: str="asc") -> dict:
         """
         Load the files metadata of the current directory
@@ -112,7 +120,11 @@ class Stack:
         :param path: Path to change to, default is the root directory ('/')
         :return: self
         """
-        self.__cwd = path
+        if path.startswith("/"):
+            self.__cwd = path
+        else:
+            self.__cwd = realpath(join(self.__cwd, path))
+
         return self
 
     def walk(self, path: str=None, order: str="asc") -> Iterable[StackFile]:
