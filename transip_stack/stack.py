@@ -40,6 +40,8 @@ class Stack:
             'webdav_hostname': "https://{}".format(hostname),
         })
 
+        self.webdav.default_options["WRITEFUNCTION"] = lambda x: None
+
     def __enter__(self):
         """
         Context manager enter, for use in the 'with' statement
@@ -242,7 +244,7 @@ class Stack:
 
         return node
 
-    def upload(self, file, path: str=None, name: str=None) -> StackFile:
+    def upload(self, file, name: str=None, path: str=None) -> StackFile:
         """
         Upload a file to Stack
         :param file: IO pointer or string containing a path to a file
@@ -254,11 +256,11 @@ class Stack:
             path = self.__cwd
 
         if isinstance(file, IOBase):
-            return self.__upload(file, path, name)
+            return self.__upload(file=file, path=path, name=name)
 
         if isinstance(file, str):
             with open(file, "rb") as fd:
-                return self.__upload(fd, path, name)
+                return self.__upload(file=fd, path=path, name=name)
 
         raise StackException("File should either be a path to a file on disk or an IO type, got: {}".format(type(file)))
 
