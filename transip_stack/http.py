@@ -8,9 +8,13 @@ class StackHTTP(Session):
         super(StackHTTP, self).__init__()
         self.__host = hostname
         self.__base = "https://{}".format(hostname)
+        self.expose_agent = True
 
     def request(self, method, url, *args, **kwargs):
         headers = kwargs.get("headers", {})
+
+        if self.expose_agent:
+            headers["User-Agent"] = "Python STACK API"
 
         if kwargs.get("csrf"):
             del kwargs["csrf"]

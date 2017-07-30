@@ -1,12 +1,13 @@
 import logging
-from io import IOBase, BytesIO, RawIOBase, BufferedIOBase
+from io import IOBase, BytesIO, BufferedIOBase
 from typing import Union, Iterable
-from posixpath import join, basename
+from posixpath import join
 
 from webdav.client import Client as WebdavClient
 from webdav.exceptions import WebDavException
 
 from .http import StackHTTP
+from .users import StackUser
 from .nodes import StackNode, StackFile, StackDirectory
 from .exceptions import StackException
 
@@ -28,7 +29,8 @@ class Stack:
         self.__logged_in = False
         self.__cwd = "/"
 
-        self.ls_buffer_limit = 1000  # Default: 50
+        self.ls_buffer_limit = 1000           # Default: 50
+        self.enforce_password_policy = False  # Yeah, passwords aren't enforced server side.
 
         self.http = StackHTTP(hostname)
         self.webdav = WebdavClient({
@@ -334,3 +336,76 @@ class Stack:
 
         except WebDavException as e:
             raise StackException(e)
+
+    @property
+    def users(self) -> Iterable[StackUser]:
+        """
+        List the current (or other) directory
+        :return: StackUser iterator
+        """
+        limit = 50
+        offset = 0
+        amount = None
+
+        while amount is None or (amount is not None and offset < int(amount)):
+            params = {"public": False, "offset": offset, "limit": limit, "query": ""}
+            users = self.http.get("/api/users", params=params).json()
+            yield from (StackUser(stack=self, props=u) for u in users.get("users") or [])
+            amount = int(users.get("amountUsers"))
+            offset += limit
+
+    def user(self, name: str) -> StackUser:
+        """
+        Get a user by name
+        :param name: Name to find
+        :return: Stack user
+        """
+        params = {"public": False, "offset": 0, "limit": 1000, "query": name}
+        users = self.http.get("/api/users", params=params).json()
+
+        if not any(users.get("users") or []):
+            raise StackException("Unable to find user '{}'".format(name))
+
+        return StackUser(stack=self, props=users.get("users", [])[0])
+
+    def create_user(self, name: str, username: str, password: str, disk_quota: int=None) -> StackUser:
+        """
+        Create a STACK user
+        :param name: User to create
+        :param username: Username
+        :param password: Password
+        :param disk_quota: Disk quota in bytes, if set to None user is allowed to use infinite space
+        :return: The newly created stack user
+        """
+        if self.enforce_password_policy:
+            if len(password) < 8:
+                raise StackException("Password must be at least 8 characters long!")
+
+        disk_quota = int(disk_quota) if disk_quota else -1
+        data = {"action": "create", "user": {"username": username,"newUser": True, "isPublic": False, "password": password, "displayName": name, "quota": disk_quota}}
+        resp = self.http.post("/api/users/update", json=[data], csrf=True)
+
+        if resp.status_code == 409:
+            raise StackException("Unable to create user '{}', either you don't have permission to do so or the user already exists!".format(username))
+        else:
+            resp = resp.json()
+
+        if resp.get("status") != "ok":
+            raise StackException("Expected 'ok' status, got response: {}".format(resp))
+
+        return self.user(username)
+
+    def user_or_create_new(self, name: str, username: str, password: str, disk_quota: int=None) -> StackUser:
+        """
+        Get a user on STACK or create a new one if not found
+        :param name: Name of the user
+        :param username: Username, used when searching
+        :param password: Password to set if the user isn't found
+        :param disk_quota: Disk quota to set in bytes, default: Infinite
+        :return: Stack User
+        """
+        try:
+            return self.user(username)
+
+        except StackException:
+            return self.create_user(name, username, password, disk_quota)

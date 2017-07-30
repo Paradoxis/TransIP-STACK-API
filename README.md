@@ -7,6 +7,8 @@ PIP installation coming soon, for now just clone the repository
 ## Usage
 
 ```python
+from io import BytesIO
+
 from transip_stack import Stack, StackException
 
 
@@ -22,6 +24,21 @@ with Stack(username="foo", password="bar", hostname="stack.example.com") as stac
             file.share()
             
         print(file.share_url)
+        
+    user = stack.user("admin")
+    user.set_name("John Doe")
+    
+    user = stack.user_or_create_new(name="Someone Else", username="someone", password="foo", disk_quota=5 * 1000 * 1000)
+
+
+with Stack(username="someone", password="foo", hostname="stack.example.com") as stack:
+    stack.upload("foo.txt")
+    stack.download("foo.txt", "example.txt")
+    
+    buff = BytesIO()
+    stack.download_into("foo.txt", buffer=buff)
+    print(buff.getvalue().decode())
+
 ```
 
 Without context managers:
@@ -139,6 +156,35 @@ stack.logout()  # Important
       * query: str = ""
         * *Not sure why this is added, possibly for mass file deletion*
 
+### List users
+* GET `/api/users`
+  * Body
+    * *None*
+  * Query
+    * public: bool = false
+    * offset: int = 0
+    * limit: int = 50
+    * query str = ""
+    
+### Delete a user
+* POST `/api/users/update`
+  * Body (JSON)
+    * Array of:
+      * action: str = "delete"
+      * user: User 
+        * *The entire user object you got from `GET /api/users`
+  * Query
+    * *None*
+    
+### Update a user's properties
+* POST `/api/users/update`
+  * Body (JSON)
+    * Array of:
+      * action: str = "update"
+      * user: User
+  * Query
+    * *None*
+
 ## Headers
 * CSRF-Token
   * Found in `/files` in a meta tag with the name `csrf-token`
@@ -160,3 +206,12 @@ stack.logout()  # Important
     * isPreviewable: bool
     * width: int
     * height: int
+
+* User (Dict)
+    * username: str
+    * displayName: str
+    * quota: int
+    * used: int
+    * isAdmin: bool
+    * isPremium: bool
+    * language: str
