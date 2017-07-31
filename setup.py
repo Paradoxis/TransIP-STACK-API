@@ -5,7 +5,7 @@ from pip.download import PipSession
 
 setup(
     name='transip-stack-api',
-    version='1.0.0',
+    version='1.0.1',
     install_requires=list(str(line.name) for line in parse_requirements("requirements.txt", session=PipSession())),
     url='https://github.com/Paradoxis/TransIP-STACK-API',
     license='MIT',
