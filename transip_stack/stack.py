@@ -113,7 +113,11 @@ class Stack:
         Load the files metadata of the current directory
         :return: None
         """
-        params = {"dir": path, "type": "files", "public": "false", "offset": offset, "limit": self.ls_buffer_limit, "sortBy": "default", "order": order, "query": query}
+        params = {
+            "dir": path, "type": "files", "public": "false",
+            "offset": offset, "limit": self.ls_buffer_limit,
+            "sortBy": "default", "order": order, "query": query}
+
         return self.http.get("/api/files", params=params).json()
 
     def cd(self, path: str="/"):
@@ -131,7 +135,9 @@ class Stack:
 
     def walk(self, path: str=None, order: str="asc") -> Iterable[StackFile]:
         """
-        Recursively walk through the entire directory tree, yielding each file in all directories
+        Recursively walk through the entire directory tree, yielding
+        each file in all directories
+
         :param path: Starting path to walk
         :param order: Walk order (asc, desc)
         :return: Generator of StackFile's
@@ -154,7 +160,9 @@ class Stack:
         :return: StackNode iterator
         """
         if order not in ("asc", "desc"):
-            raise StackException("Invalid order parameter, got '{}', allowed values: 'asc', 'desc'".format(order))
+            raise StackException(
+                "Invalid order parameter, got '{}', allowed "
+                "values: 'asc', 'desc'".format(order))
 
         if not path:
             path = self.__cwd
@@ -248,7 +256,9 @@ class Stack:
         """
         Upload a file to Stack
         :param file: IO pointer or string containing a path to a file
-        :param name: Custom name which will be used on the remote server, defaults to file.name
+        :param name:
+            Custom name which will be used on
+            the remote server, defaults to file.name
         :param path: Path to upload it to, defaults to current working directory
         :return: Instance of a stack file
         """
@@ -262,7 +272,9 @@ class Stack:
             with open(file, "rb") as fd:
                 return self.__upload(file=fd, path=path, name=name)
 
-        raise StackException("File should either be a path to a file on disk or an IO type, got: {}".format(type(file)))
+        raise StackException(
+            "File should either be a path to a file on "
+            "disk or an IO type, got: {}".format(type(file)))
 
     def __upload(self, file, path: str=None, name: str=None) -> StackFile:
         """
@@ -274,10 +286,12 @@ class Stack:
         :return: StackFile instance
         """
         if not name and not file.name:
-            raise StackException("Unable to determine remote file name, either set it via file.name or by passing the 'name' parameter")
-        else:
-            name = name or file.name
-            path = join(path, name)
+            raise StackException(
+                "Unable to determine remote file name, either set "
+                "it via file.name or by passing the 'name' parameter")
+
+        name = name or file.name
+        path = join(path, name)
 
         try:
             self.webdav.upload_from(file, path)
@@ -290,7 +304,8 @@ class Stack:
         """
         Download a file from your STACK account to a given path
         :param file: File name to download 
-        :param remote_path: Directory to download from (default: current working directory)
+        :param remote_path:
+            Directory to download from (default: current working directory)
         :param output_path: Output path to write the file to
         :return: None
         """
@@ -322,7 +337,9 @@ class Stack:
             buffer = BytesIO()
 
         if not isinstance(buffer, BufferedIOBase):
-            raise StackException("Download buffer must be a binary IO type, please use BytesIO or open your file in 'rb' mode.")
+            raise StackException(
+                "Download buffer must be a binary IO type, please "
+                "use BytesIO or open your file in 'rb' mode.")
 
         try:
             self.webdav.download_to(buffer, file.lstrip("/"))
@@ -396,13 +413,19 @@ class Stack:
                 raise StackException("Password must be at least 8 characters long!")
 
         disk_quota = int(disk_quota) if disk_quota else -1
-        data = {"action": "create", "user": {"username": username,"newUser": True, "isPublic": False, "password": password, "displayName": name, "quota": disk_quota}}
+        data = {
+            "action": "create", "user": {
+                "username": username, "newUser": True, "isPublic": False,
+                "password": password, "displayName": name, "quota": disk_quota}}
+
         resp = self.http.post("/api/users/update", json=[data], csrf=True)
 
         if resp.status_code == 409:
-            raise StackException("Unable to create user '{}', either you don't have permission to do so or the user already exists!".format(username))
-        else:
-            resp = resp.json()
+            raise StackException(
+                "Unable to create user '{}', either you don't have permission "
+                "to do so or the user already exists!".format(username))
+
+        resp = resp.json()
 
         if resp.get("status") != "ok":
             raise StackException("Expected 'ok' status, got response: {}".format(resp))
