@@ -10,7 +10,8 @@ from setuptools import find_packages, setup, Command
 
 
 # Package meta-data.
-NAME = 'transip_stack'
+NAME = 'transip-stack-api'
+PACKAGE = 'transip_stack'
 DESCRIPTION = 'Unofficial wrapper for the TransIP STACK API'
 URL = 'https://github.com/Paradoxis/TransIP-STACK-API'
 EMAIL = 'luke@paradoxis.nl'
@@ -44,13 +45,13 @@ here = os.path.abspath(os.path.dirname(__file__))
 with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = ('\n' + f.read()).strip()
 
-with io.open(os.path.join(here, NAME, '__init__.py'), encoding='utf-8') as init:
+with io.open(os.path.join(here, PACKAGE, '__init__.py'), encoding='utf-8') as init:
     VERSION = re.search(r'__version__ = [\'"]([\d.]+)[\'"]', init.read()).group(1)
 
 # Load the package's __version__.py module as a dictionary.
 about = {}
 if not VERSION:
-    with open(os.path.join(here, NAME, '__version__.py')) as f:
+    with open(os.path.join(here, PACKAGE, '__version__.py')) as f:
         exec(f.read(), about)
 else:
     about['__version__'] = VERSION
