@@ -5,7 +5,7 @@ from typing import Union
 
 from webdav.exceptions import WebDavException
 
-from .exceptions import StackException
+from transip_stack.exceptions import StackException
 
 
 class StackNode:

@@ -6,10 +6,10 @@ from posixpath import join, realpath
 from webdav.client import Client as WebdavClient
 from webdav.exceptions import WebDavException
 
-from .http import StackHTTP
-from .users import StackUser
-from .nodes import StackNode, StackFile, StackDirectory
-from .exceptions import StackException
+from transip_stack.http import StackHTTP
+from transip_stack.users import StackUser
+from transip_stack.nodes import StackNode, StackFile, StackDirectory
+from transip_stack.exceptions import StackException
 
 
 class Stack:

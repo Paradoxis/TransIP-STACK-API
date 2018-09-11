@@ -1,2 +1,2 @@
-from .stack import Stack
-from .exceptions import StackException
+from transip_stack.stack import Stack
+from transip_stack.exceptions import StackException

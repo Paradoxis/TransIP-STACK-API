@@ -1,6 +1,6 @@
 from typing import Optional
 
-from .exceptions import StackException
+from transip_stack.exceptions import StackException
 
 
 class StackUser:
