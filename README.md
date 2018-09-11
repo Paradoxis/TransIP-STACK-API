@@ -8,6 +8,12 @@ To install the library, simply install it using pip:
 $ pip install transip-stack-api
 ```
 
+For development installations
+
+```
+$ pip install -e .
+```
+
 ## Usage
 To use the project, simply import the library into your project like so:
 
