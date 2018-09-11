@@ -26,6 +26,12 @@ REQUIRED = [
     'pycurl==7.43.0'
 ]
 
+EXTRAS = {
+    'dev': [
+        'twine'
+    ]
+}
+
 # The rest you shouldn't have to touch too much :)
 # ------------------------------------------------
 # Except, perhaps the License and Trove Classifiers!
@@ -100,6 +106,7 @@ setup(
     url=URL,
     packages=find_packages(exclude=('tests',)),
     install_requires=REQUIRED,
+    extras_require=EXTRAS,
     include_package_data=True,
     license='MIT',
     classifiers=[

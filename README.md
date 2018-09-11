@@ -11,7 +11,7 @@ $ pip install transip-stack-api
 For development installations
 
 ```
-$ pip install -e .
+$ pip install -e .[dev]
 ```
 
 ## Usage
