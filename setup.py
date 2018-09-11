@@ -1,9 +1,9 @@
-from distutils.core import setup
+from setuptools import setup
 
 
 setup(
     name='transip-stack-api',
-    version='1.0.1',
+    version='1.0.2',
     install_requires=[
         'bs4>=0.0.1',
         'lxml>=3.8.0',
