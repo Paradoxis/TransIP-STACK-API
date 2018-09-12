@@ -14,6 +14,15 @@ For development installations
 $ pip install -e .[dev]
 ```
 
+## Installing PyCurl on MacOS X
+As [webdavclient](https://github.com/CloudPolis/webdav-client-python) uses [pycurl](https://github.com/pycurl/pycurl), 
+immedate installations via pip won't work, to correctly install this package for MacOS X
+execute the following command post-installation <sup>[source](https://cscheng.info/2018/01/26/installing-pycurl-on-macos-high-sierra.html)</sup>
+
+```
+$ PYCURL_SSL_LIBRARY=openssl LDFLAGS="-L/usr/local/opt/openssl/lib" CPPFLAGS="-I/usr/local/opt/openssl/include" pip install --force-reinstall --no-cache-dir pycurl==7.43.0
+```
+
 ## Usage
 To use the project, simply import the library into your project like so:
 
