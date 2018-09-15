@@ -1,4 +1,8 @@
 # TransIP STACK API
+[![Build Status](https://travis-ci.org/Paradoxis/TransIP-STACK-API.svg?branch=master)](https://travis-ci.org/Paradoxis/TransIP-STACK-API)
+[![PyPI version](https://badge.fury.io/py/transip-stack-api.svg)](https://badge.fury.io/py/transip-stack-api)
+[![codecov](https://codecov.io/gh/Paradoxis/TransIP-Stack-API/branch/master/graph/badge.svg)](https://codecov.io/gh/Paradoxis/TransIP-Stack-API)
+
 Unofficial wrapper for the TransIP STACK API, written in Python 3
 
 ## Installation
