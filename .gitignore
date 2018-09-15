@@ -6,3 +6,5 @@ dist/
 build/
 test.py
 *.egg-info
+.coverage
+coverage.xml

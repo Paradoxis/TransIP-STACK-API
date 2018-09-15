@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from posixpath import basename, dirname, join, realpath
-from datetime import date
+from datetime import date, datetime
 from typing import Union
 
 from webdav.exceptions import WebDavException
@@ -68,31 +68,41 @@ class StackNode:
         return self._props.get("path", "")
 
     @property
+    def is_favorited(self):
+        return self._props.get("isFavorited", False)
+
+    @property
     def is_shared(self) -> bool:
         return any(self._props.get("shareToken", ""))
 
     @property
+    def shared_on(self) -> datetime:
+        return datetime.fromtimestamp(self._props.get("shareTime", 0))
+
+    @property
+    def share_expiry_date(self):
+        ex_date = self._props.get("expirationDate", "")
+        if ex_date:
+            return datetime.strptime(ex_date, "%Y-%m-%d").date()
+
+    @property
     def has_share_password(self) -> bool:
-        if not self.is_shared:
+        if self.is_shared:
             return self._props.get("hasSharePassword", False)
-        else:
-            raise StackException("File '{}' is not shared!".format(self.path))
+
+        return False
 
     @property
     def share_token(self) -> str:
         if self.is_shared:
             return self._props.get("shareToken", "")
-        else:
-            raise StackException("File '{}' is not shared!".format(self.path))
 
     @property
     def share_url(self) -> str:
         if self.is_shared:
             return "{}/s/{}".format(self._http.base_url, self.share_token)
-        else:
-            raise StackException("File '{}' is not shared!".format(self.path))
 
-    def share(self, password: str=None, expiry_date: Union[date, str]=None) -> str:
+    def share(self, password: str=None, expiry_date: Union[date, datetime, str]=None) -> str:
         """
         Share a file, auto-returns the share URL
         :param password: Password protect the share
@@ -102,8 +112,8 @@ class StackNode:
         data = {"action": "share", "path": self.path, "active": True, "allowWrites": False,
                 "updatePassword": True, "updateExpireDate": True, "sharePassword": password or ""}
 
-        if isinstance(expiry_date, date):
-            data["expireDate"] = date(expiry_date).strftime("%Y-%m-%d")
+        if isinstance(expiry_date, (date, datetime)):
+            data["expireDate"] = expiry_date.strftime("%Y-%m-%d")
         else:
             data["expireDate"] = expiry_date or ""
 
@@ -136,6 +146,10 @@ class StackNode:
         :return: None
         """
         resp = self._http.get("/api/pathinfo", params={"path": self.path})
+
+        if resp.status_code != 200:
+            pass
+
         self._props.update(resp.json())
 
     def move(self, path: str):
@@ -144,13 +158,17 @@ class StackNode:
         :param path: New path to send to, accepts absolute and relative paths
         :return: None
         """
+        if path.endswith("/"):
+            path = join(path, self.name)
+
         if path.startswith("../"):
             path = realpath(join(self.directory, path))
         elif not path.startswith("/") or path.startswith("./"):
-            path = join(self.directory, path)
+            path = join(self.directory, path.lstrip('./'))
 
         try:
             self._webdav.move(self.path, path)
+            self._props["path"] = path
             self.refresh()
 
         except WebDavException as e:
@@ -161,7 +179,7 @@ class StackNode:
         Mark a file or directory as favorited
         :return: None
         """
-        data = {"action": "delete", "path": self.path, "query": "", "active": True}
+        data = {"action": "favorite", "path": self.path, "query": "", "active": True}
         resp = self._http.post("/api/files/update", json=[data], csrf=True)
         self._props.update(resp.json()[0])
 
@@ -170,9 +188,12 @@ class StackNode:
         Un-mark a file or directory as favorited
         :return: None
         """
-        data = {"action": "delete", "path": self.path, "query": "", "active": False}
+        data = {"action": "favorite", "path": self.path, "query": "", "active": False}
         resp = self._http.post("/api/files/update", json=[data], csrf=True)
         self._props.update(resp.json()[0])
+
+    def __repr__(self):
+        return '<{} name={!r}>'.format(self.__class__.__name__, self.name)
 
 
 class StackDirectory(StackNode):
@@ -182,7 +203,7 @@ class StackDirectory(StackNode):
 
     @property
     def directory(self):
-        return self.path
+        return self.path.rstrip('/') + '/'
 
 
 class StackFile(StackNode):
@@ -192,4 +213,4 @@ class StackFile(StackNode):
 
     @property
     def directory(self) -> str:
-        return dirname(self.path)
+        return dirname(self.path).rstrip('/') + '/'

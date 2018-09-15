@@ -30,6 +30,9 @@ REQUIRED = [
 EXTRAS = {
     'dev': [
         'twine'
+    ],
+    'test': [
+        'coverage'
     ]
 }
 

@@ -1,5 +1,5 @@
 import logging
-from io import IOBase, BytesIO, BufferedIOBase
+from io import BytesIO, BufferedIOBase
 from typing import Union, Iterable
 from posixpath import join, realpath
 
@@ -98,7 +98,7 @@ class Stack:
         Get the current working directory
         :return: Current working directory
         """
-        return self.__cwd
+        return self.__cwd.rstrip('/') + '/'
 
     @property
     def pwd(self) -> str:
@@ -106,7 +106,7 @@ class Stack:
         Alias of cwd
         :return: Current working directory
         """
-        return self.__cwd
+        return self.cwd
 
     def __files(self, path: str, offset: int, query: str="", order: str="asc") -> dict:
         """
@@ -120,18 +120,20 @@ class Stack:
 
         return self.http.get("/api/files", params=params).json()
 
-    def cd(self, path: str="/"):
+    def cd(self, path: str="/") -> StackDirectory:
         """
         Change the current STACK working directory
         :param path: Path to change to, default is the root directory ('/')
-        :return: self
+        :return: StackDirectory
         """
         if path.startswith("/"):
-            self.__cwd = path
+            path = path
         else:
-            self.__cwd = realpath(join(self.__cwd, path))
+            path = realpath(join(self.__cwd, path))
 
-        return self
+        directory = self.directory(path)
+        self.__cwd = path
+        return directory
 
     def walk(self, path: str=None, order: str="asc") -> Iterable[StackFile]:
         """
@@ -142,6 +144,9 @@ class Stack:
         :param order: Walk order (asc, desc)
         :return: Generator of StackFile's
         """
+        if order not in ('asc', 'desc'):
+            raise StackException('Invalid order: {!r}, accepted values: asc, desc'.format(order))
+
         if not path:
             path = self.__cwd
 
@@ -224,6 +229,10 @@ class Stack:
             path = join(self.__cwd, name)
 
         resp = self.http.get("/api/pathinfo", params={"path": path})
+
+        if resp.status_code == 404:
+            raise StackException('No such file or directory.')
+
         return self.__node_to_object(resp.json())
 
     def file(self, name: str) -> StackFile:
@@ -252,7 +261,7 @@ class Stack:
 
         return node
 
-    def upload(self, file, name: str=None, path: str=None) -> StackFile:
+    def upload(self, file, *, name: str=None, path: str=None) -> StackFile:
         """
         Upload a file to Stack
         :param file: IO pointer or string containing a path to a file
@@ -265,7 +274,7 @@ class Stack:
         if not path:
             path = self.__cwd
 
-        if isinstance(file, IOBase):
+        if hasattr(file, 'read'):
             return self.__upload(file=file, path=path, name=name)
 
         if isinstance(file, str):
@@ -285,7 +294,7 @@ class Stack:
         :param name: Remote name
         :return: StackFile instance
         """
-        if not name and not file.name:
+        if not name and not getattr(file, 'name', None):
             raise StackException(
                 "Unable to determine remote file name, either set "
                 "it via file.name or by passing the 'name' parameter")
@@ -320,7 +329,7 @@ class Stack:
         except WebDavException as e:
             raise StackException(e)
 
-    def download_into(self, file: str, buffer: Union[BufferedIOBase, BytesIO]=None, remote_path: str=None) -> IOBase:
+    def download_into(self, file: str, buffer: Union[BufferedIOBase, BytesIO]=None, remote_path: str=None):
         """
         Download a file from your STACK account
         :param file: File name to download
@@ -336,10 +345,10 @@ class Stack:
         if not buffer:
             buffer = BytesIO()
 
-        if not isinstance(buffer, BufferedIOBase):
+        if not hasattr(buffer, 'write'):
             raise StackException(
                 "Download buffer must be a binary IO type, please "
-                "use BytesIO or open your file in 'rb' mode.")
+                "use BytesIO or open your file in 'wb' mode.")
 
         try:
             self.webdav.download_to(buffer, file.lstrip("/"))
@@ -371,7 +380,7 @@ class Stack:
     @property
     def users(self) -> Iterable[StackUser]:
         """
-        List the current (or other) directory
+        Get an iterator of all users registered to this account
         :return: StackUser iterator
         """
         limit = 50
@@ -380,8 +389,17 @@ class Stack:
 
         while amount is None or (amount is not None and offset < int(amount)):
             params = {"public": False, "offset": offset, "limit": limit, "query": ""}
-            users = self.http.get("/api/users", params=params).json()
+            resp = self.http.get("/api/users", params=params)
+
+            if resp.status_code == 403:
+                raise StackException(
+                    'Unable to list users, access denied. '
+                    'Please log in with the administrator account.')
+
+            users = resp.json()
+
             yield from (StackUser(stack=self, props=u) for u in users.get("users") or [])
+
             amount = int(users.get("amountUsers"))
             offset += limit
 
@@ -391,8 +409,15 @@ class Stack:
         :param name: Name to find
         :return: Stack user
         """
-        params = {"public": False, "offset": 0, "limit": 1000, "query": name}
-        users = self.http.get("/api/users", params=params).json()
+        params = {"public": False, "offset": 0, "limit": 1, "query": name}
+        users = self.http.get("/api/users", params=params)
+
+        if users.status_code == 403:
+            raise StackException(
+                'Unable to list users, access denied. '
+                'Please log in with the administrator account.')
+
+        users = users.json()
 
         if not any(users.get("users") or []):
             raise StackException("Unable to find user '{}'".format(name))

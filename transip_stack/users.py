@@ -58,6 +58,14 @@ class StackUser:
     def disk_used(self) -> int:
         return int(self._props.get("used"))
 
+    @property
+    def language(self) -> str:
+        return self._props.get("language", "nl_NL")
+
+    @language.setter
+    def language(self, value):
+        self._props["language"] = value
+
     def delete(self):
         """
         Delete the current user
