@@ -20,7 +20,7 @@ class TransIpStackTestCase(TestCase):
     USERNAME = getenv('STACK_USERNAME')
     PASSWORD = getenv('STACK_PASSWORD')
     HOSTNAME = getenv('STACK_HOSTNAME')
-    PREFIX = '.'.join(map(str, sys.version_info))
+    PREFIX = '.'.join(map(str, sys.version_info)) + '-' + getenv('TRAVIS_COMMIT', 'master')
 
     @patch.object(Stack, 'logout')
     @patch.object(Stack, 'login')
