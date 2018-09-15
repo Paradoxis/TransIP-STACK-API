@@ -25,9 +25,17 @@ class StackUser:
     def name(self) -> str:
         return self._props.get("displayName", "")
 
+    @name.setter
+    def name(self, value: str):
+        self._props["displayName"] = value
+
     @property
     def username(self) -> str:
         return self._props.get("username", "")
+
+    @username.setter
+    def username(self, value: str):
+        self._props["username"] = value
 
     @property
     def is_admin(self) -> bool:
@@ -41,6 +49,10 @@ class StackUser:
     def disk_quota(self) -> Optional[int]:
         quota = int(self._props.get("quota", self.QUOTA_INFINITE))
         return quota if (quota > 0) else None
+
+    @disk_quota.setter
+    def disk_quota(self, value: Optional[int]):
+        self._props["quota"] = int(value) if value else self.QUOTA_INFINITE
 
     @property
     def disk_used(self) -> int:
@@ -59,61 +71,19 @@ class StackUser:
                 "Unable to delete user '{}', expected status 'ok' "
                 "and got response: {}".format(self.username, resp))
 
-    def set_password(self, password: str):
+    def save(self):
         """
-        Set the password of the current user
-        :param password: Password to set
+        Save the current user state
         :return: None
         """
-        data = self._props.copy()
-        data["password"] = password
         resp = self._http.post("/api/users/update", json=[
-            {"action": "update", "user": data}
+            {"action": "update", "user": self._props}
         ], csrf=True).json()
 
-        if not resp.get("status") == "ok":
+        if resp.get("status") != "ok":
             raise StackException(
-                "Unable to set user password '{}', expected status 'ok' "
-                "and got response: {}".format(self.username, resp))
+                "Unable to set properties. Expected status 'ok' "
+                "and got response: {}".format(resp))
 
-    def set_disk_quota(self, disk_quota: int):
-        """
-        Set the disk quota of the current user
-        :param disk_quota:
-            Disk quota to set, if set to None, an
-            infinite amount will be assigned
-        :return: None
-        """
-        data = self._props.copy()
-        data["quota"] = int(disk_quota) if disk_quota else self.QUOTA_INFINITE
-
-        resp = self._http.post("/api/users/update", json=[
-            {"action": "update", "user": data}
-        ], csrf=True).json()
-
-        if resp.get("status") == "ok":
-            self._props.update(data)
-        else:
-            raise StackException(
-                "Unable to set user password '{}', expected status 'ok' "
-                "and got response: {}".format(self.username, resp))
-
-    def set_name(self, name: str):
-        """
-        Set the display name of the current user
-        :param name: New name to set
-        :return: None
-        """
-        data = self._props.copy()
-        data["displayName"] = name
-
-        resp = self._http.post("/api/users/update", json=[
-            {"action": "update", "user": data}
-        ], csrf=True).json()
-
-        if resp.get("status") == "ok":
-            self._props.update(data)
-        else:
-            raise StackException(
-                "Unable to set user's name '{}', expected status 'ok' "
-                "and got response: {}".format(self.username, resp))
+    def __repr__(self):
+        return "<StackUser name={!r}>".format(self.name)
