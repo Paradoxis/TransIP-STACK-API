@@ -86,6 +86,11 @@ with Stack(username="someone", password="foo", hostname="stack.example.com") as 
     buff = BytesIO()
     stack.download_into("foo.txt", buffer=buff)
     print(buff.getvalue().decode())
+    
+    try:
+        user = stack.user('admin')
+    except StackException as e:
+        print(e)  # -> "Access denied .."
 ```
 
 Without context managers:
