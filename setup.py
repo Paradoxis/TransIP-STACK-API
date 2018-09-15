@@ -16,7 +16,7 @@ DESCRIPTION = 'Unofficial wrapper for the TransIP STACK API'
 URL = 'https://github.com/Paradoxis/TransIP-STACK-API'
 EMAIL = 'luke@paradoxis.nl'
 AUTHOR = 'Luke Paris (Paradoxis)'
-REQUIRES_PYTHON = '>=3.6.0'
+REQUIRES_PYTHON = '>=3.5.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
