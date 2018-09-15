@@ -54,20 +54,29 @@ from transip_stack import Stack, StackException
 with Stack(username="foo", password="bar", hostname="stack.example.com") as stack:
     for file in stack.files:
         print(file.name)
-        
-    for file in stack.cd("/").ls("foo"):
+
+    for file in stack.ls("foo"):
         print(file.name)
-        
-    for file in stack.cd("/foo").files:
+
+    stack.cd("/foo")
+
+    for file in stack.files:
         if not file.is_shared:
             file.share()
-            
+
         print(file.share_url)
-        
+
     user = stack.user("admin")
-    user.set_name("John Doe")
-    
-    user = stack.user_or_create_new(name="Someone Else", username="someone", password="foo", disk_quota=5 * 1000 * 1000)
+    user.name = "John Doe"
+    user.save()
+
+    user = stack.user_or_create_new(
+        name="Someone Else", 
+        username="someone", 
+        password="Pa$$w0rd!", 
+        disk_quota=5 * 1000 * 1000)
+        
+    print(user.is_admin)  # -> False
 
 
 with Stack(username="someone", password="foo", hostname="stack.example.com") as stack:
@@ -77,7 +86,6 @@ with Stack(username="someone", password="foo", hostname="stack.example.com") as 
     buff = BytesIO()
     stack.download_into("foo.txt", buffer=buff)
     print(buff.getvalue().decode())
-
 ```
 
 Without context managers:
