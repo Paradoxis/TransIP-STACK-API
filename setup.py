@@ -32,6 +32,7 @@ EXTRAS = {
         'twine'
     ],
     'test': [
+        'codecov',
         'coverage'
     ]
 }
