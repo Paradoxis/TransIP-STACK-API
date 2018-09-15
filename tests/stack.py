@@ -1,3 +1,4 @@
+import sys
 import json
 from datetime import timedelta, datetime
 from io import BytesIO
@@ -19,6 +20,7 @@ class TransIpStackTestCase(TestCase):
     USERNAME = getenv('STACK_USERNAME')
     PASSWORD = getenv('STACK_PASSWORD')
     HOSTNAME = getenv('STACK_HOSTNAME')
+    PREFIX = '.'.join(map(str, sys.version_info))
 
     @patch.object(Stack, 'logout')
     @patch.object(Stack, 'login')
@@ -186,23 +188,26 @@ class TransIpStackTestCase(TestCase):
             self.assertEqual(stack.cwd, '/')
             self.assertEqual(stack.pwd, '/')
 
+            stack.mkdir(self.PREFIX)
+            stack.cd(self.PREFIX)
+
             for node in stack.walk():
                 node.delete()
 
             self.assertIsInstance(stack.mkdir('foo'), StackDirectory)
             self.assertIsInstance(stack.cd('foo'), StackDirectory)
-            self.assertEqual(stack.cwd, '/foo/')
+            self.assertEqual(stack.cwd, '/' + self.PREFIX + '/foo/')
 
             self.assertIsInstance(stack.mkdir('bar'), StackDirectory)
             self.assertIsInstance(stack.cd('bar'), StackDirectory)
-            self.assertEqual(stack.cwd, '/foo/bar/')
+            self.assertEqual(stack.cwd, '/' + self.PREFIX + '/foo/bar/')
 
             with self.assertRaises(StackException):
                 with patch.object(stack.webdav, 'mkdir', side_effect=WebDavException):
                     stack.mkdir('baz')
 
-            stack.cd('/foo/bar/')
-            self.assertEqual(stack.cwd, '/foo/bar/')
+            stack.cd('/' + self.PREFIX + '/foo/bar/')
+            self.assertEqual(stack.cwd, '/' + self.PREFIX + '/foo/bar/')
 
             with self.assertRaises(StackException, msg='Expected error: /foo/bar/foo does not exist'):
                 stack.cd('foo')
@@ -212,8 +217,8 @@ class TransIpStackTestCase(TestCase):
 
             result = stack.upload(file, name='hello.txt')
             self.assertIsInstance(result, StackFile)
-            self.assertEqual(result.directory, '/foo/bar/')
-            self.assertEqual(result.path, '/foo/bar/hello.txt')
+            self.assertEqual(result.directory, '/' + self.PREFIX + '/foo/bar/')
+            self.assertEqual(result.path, '/' + self.PREFIX + '/foo/bar/hello.txt')
             self.assertEqual(result.name, 'hello.txt')
             self.assertEqual(result.type, 'application/text')
             self.assertEqual(result.size, len('Hello world'))
@@ -282,34 +287,34 @@ class TransIpStackTestCase(TestCase):
 
             result.move('./world.txt')
             self.assertEqual(result.name, 'world.txt')
-            self.assertEqual(result.path, '/foo/bar/world.txt')
-            self.assertEqual(result.directory, '/foo/bar/')
+            self.assertEqual(result.path, '/' + self.PREFIX + '/foo/bar/world.txt')
+            self.assertEqual(result.directory, '/' + self.PREFIX + '/foo/bar/')
 
             result.move('world.txt')
             self.assertEqual(result.name, 'world.txt')
-            self.assertEqual(result.path, '/foo/bar/world.txt')
-            self.assertEqual(result.directory, '/foo/bar/')
+            self.assertEqual(result.path, '/' + self.PREFIX + '/foo/bar/world.txt')
+            self.assertEqual(result.directory, '/' + self.PREFIX + '/foo/bar/')
 
             result.move('../')
             self.assertEqual(result.name, 'world.txt')
-            self.assertEqual(result.path, '/foo/world.txt')
-            self.assertEqual(result.directory, '/foo/')
+            self.assertEqual(result.path, '/' + self.PREFIX + '/foo/world.txt')
+            self.assertEqual(result.directory, '/' + self.PREFIX + '/foo/')
 
             result.move('../example.txt')
             self.assertEqual(result.name, 'example.txt')
-            self.assertEqual(result.path, '/example.txt')
-            self.assertEqual(result.directory, '/')
+            self.assertEqual(result.path, '/' + self.PREFIX + '/example.txt')
+            self.assertEqual(result.directory, '/' + self.PREFIX + '/')
 
             with self.assertRaises(StackException):
                 with patch.object(result._webdav, 'move', side_effect=WebDavException):
                     result.move('foo.txt')
 
-            stack.cd('/')
+            stack.cd('/' + self.PREFIX + '/')
             self.assertEqual(len(list(stack.files)), 1)
             self.assertEqual(len(list(stack.directories)), 1)
 
-            root = stack.directory('/')
-            self.assertEqual(root.directory, '/')
+            root = stack.directory('/' + self.PREFIX + '/')
+            self.assertEqual(root.directory, '/' + self.PREFIX + '/')
 
             with self.assertRaises(StackException):
                 stack.file('foo')
@@ -319,6 +324,9 @@ class TransIpStackTestCase(TestCase):
 
             with self.assertRaises(StackException):
                 stack.upload(None)
+
+            for node in stack.walk():
+                node.delete()
 
     def resp(self, data, status=200, is_json=False):
         """Helper function to create requests responses for mocking"""
