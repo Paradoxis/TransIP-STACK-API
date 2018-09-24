@@ -79,7 +79,7 @@ with Stack(username="foo", password="bar", hostname="stack.example.com") as stac
     print(user.is_admin)  # -> False
 
 
-with Stack(username="someone", password="foo", hostname="stack.example.com") as stack:
+with Stack(username="someone", password="Pa$$w0rd!", hostname="stack.example.com") as stack:
     stack.upload("foo.txt")
     stack.download("foo.txt", "example.txt")
     
