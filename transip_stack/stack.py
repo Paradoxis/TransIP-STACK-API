@@ -74,7 +74,7 @@ class Stack:
         :raises: StackException
         """
         data = {"username": self.__username, "password": self.__password}
-        resp = self.http.post("/login", data=data, allow_redirects=False)
+        resp = self.http.post("/login", data=data, allow_redirects=False, csrf=False)
         self.__logged_in = resp.status_code in (301, 302)
 
         if self.__logged_in:
@@ -88,7 +88,7 @@ class Stack:
         Log out of STACK
         :return: None
         """
-        self.http.get("/logout", allow_redirects=False)
+        self.http.get("/logout", allow_redirects=False, csrf=False)
         self.__logged_in = False
         logging.debug("Logged out successfully")
 
@@ -232,6 +232,9 @@ class Stack:
 
         if resp.status_code == 404:
             raise StackException('No such file or directory.')
+
+        if resp.status_code != 200:
+            raise StackException(resp.text.strip())
 
         return self.__node_to_object(resp.json())
 
@@ -443,7 +446,7 @@ class Stack:
                 "username": username, "newUser": True, "isPublic": False,
                 "password": password, "displayName": name, "quota": disk_quota}}
 
-        resp = self.http.post("/api/users/update", json=[data], csrf=True)
+        resp = self.http.post("/api/users/update", json=[data])
 
         if resp.status_code == 409:
             raise StackException(

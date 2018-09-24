@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 from requests import Session
 from bs4 import BeautifulSoup
 
@@ -16,9 +18,8 @@ class StackHTTP(Session):
         if self.expose_agent:
             headers["User-Agent"] = "Python STACK API"
 
-        if kwargs.get("csrf"):
-            del kwargs["csrf"]
-            headers["CSRF-Token"] = self.csrf_token
+        if kwargs.pop("csrf", True):
+            headers["X-CSRF-Token"] = self.csrf_token
 
         kwargs["headers"] = headers
 
@@ -29,7 +30,8 @@ class StackHTTP(Session):
         return self.__base
 
     @property
+    @lru_cache()
     def csrf_token(self):
-        resp = self.get("/files")
+        resp = self.get("/files", csrf=False)
         soup = BeautifulSoup(resp.text, "html.parser")
         return soup.find("meta", {"name": "csrf-token"}).attrs.get("content").strip()
