@@ -328,6 +328,9 @@ class TransIpStackTestCase(TestCase):
             for node in stack.walk():
                 node.delete()
 
+        with self.assertRaises(StackException):
+            stack.directory('/')  # Unauthorized
+
     def resp(self, data, status=200, is_json=False):
         """Helper function to create requests responses for mocking"""
         resp = Response()
