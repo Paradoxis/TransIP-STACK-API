@@ -3,6 +3,8 @@ from functools import lru_cache
 from requests import Session
 from bs4 import BeautifulSoup
 
+from transip_stack import __version__
+
 
 class StackHTTP(Session):
 
@@ -16,7 +18,7 @@ class StackHTTP(Session):
         headers = kwargs.get("headers", {})
 
         if self.expose_agent:
-            headers["User-Agent"] = "Python STACK API"
+            headers["User-Agent"] = "Python-STACK-API/{}".format(__version__)
 
         if kwargs.pop("csrf", True):
             headers["X-CSRF-Token"] = self.csrf_token
