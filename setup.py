@@ -22,7 +22,7 @@ REQUIRES_PYTHON = '>=3.5.0'
 REQUIRED = [
     'bs4>=0.0.1',
     'lxml>=3.8.0',
-    'requests>=2.18.2',
+    'requests>=2.20.0',
     'webdavclient>=1.0.8',
     'pycurl==7.43.0'
 ]
