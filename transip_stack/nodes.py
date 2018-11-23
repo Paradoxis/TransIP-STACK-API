@@ -150,10 +150,7 @@ class StackNode:
         if resp.status_code != 200:
             pass
 
-        try:
-            self._props.update(resp.json())
-        except JSONDecodeError:
-            pass
+        self._props.update(resp.json())
 
     def move(self, path: str):
         """
