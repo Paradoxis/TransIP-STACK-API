@@ -1,10 +1,10 @@
 import logging
+import shutil
 from io import BytesIO, BufferedIOBase
-from typing import Union, Iterable
-from posixpath import join, realpath
+from typing import Union, Iterable, BinaryIO
+from posixpath import join, realpath, dirname, basename
 
-from webdav.client import Client as WebdavClient
-from webdav.exceptions import WebDavException
+from requests import RequestException
 
 from transip_stack.http import StackHTTP
 from transip_stack.users import StackUser
@@ -32,15 +32,10 @@ class Stack:
         self.ls_buffer_limit = 1000           # Default: 50
         self.enforce_password_policy = False  # Yeah, passwords aren't enforced server side.
 
-        self.http = StackHTTP(hostname)
-        self.webdav = WebdavClient({
-            'webdav_root': 'remote.php/webdav/',
-            'webdav_login': username,
-            'webdav_password': password,
-            'webdav_hostname': "https://{}".format(hostname),
-        })
-
-        self.webdav.default_options["WRITEFUNCTION"] = lambda x: None
+        self.http = StackHTTP(
+            hostname=hostname,
+            username=username,
+            password=password)
 
     def __enter__(self):
         """
@@ -264,31 +259,28 @@ class Stack:
 
         return node
 
-    def upload(self, file, *, name: str=None, path: str=None) -> StackFile:
+    def upload(self, file, *, remote: str=None) -> StackFile:
         """
         Upload a file to Stack
         :param file: IO pointer or string containing a path to a file
-        :param name:
+        :param remote:
             Custom name which will be used on
             the remote server, defaults to file.name
-        :param path: Path to upload it to, defaults to current working directory
+            in the current working directory
         :return: Instance of a stack file
         """
-        if not path:
-            path = self.__cwd
-
         if hasattr(file, 'read'):
-            return self.__upload(file=file, path=path, name=name)
+            return self.__upload(file=file, remote=remote)
 
         if isinstance(file, str):
             with open(file, "rb") as fd:
-                return self.__upload(file=fd, path=path, name=name)
+                return self.__upload(file=fd, remote=remote)
 
         raise StackException(
             "File should either be a path to a file on "
             "disk or an IO type, got: {}".format(type(file)))
 
-    def __upload(self, file, path: str=None, name: str=None) -> StackFile:
+    def __upload(self, file, remote: str=None) -> StackFile:
         """
         Core logic of the upload, previous method simply converts the name
         to a file IO pointer and passes it to this method
@@ -297,19 +289,21 @@ class Stack:
         :param name: Remote name
         :return: StackFile instance
         """
-        if not name and not getattr(file, 'name', None):
+        if not remote and not getattr(file, 'name', None):
             raise StackException(
                 "Unable to determine remote file name, either set "
-                "it via file.name or by passing the 'name' parameter")
+                "it via file.name or by passing the 'remote' parameter")
 
-        name = name or file.name
-        path = join(path, name)
+        name = remote or file.name
+        path = join(self.__cwd, name)
+        name = basename(name)
 
         try:
-            self.webdav.upload_from(file, path)
+            resp = self.http.webdav('PUT', path, data=file, stream=True)
+            assert resp.status_code == 201, 'Expected 201 (created) status code'
             return self.file(path)
 
-        except WebDavException as e:
+        except (AssertionError, RequestException) as e:
             raise StackException(e)
 
     def download(self, file: str, output_path: str, remote_path: str=None) -> None:
@@ -324,15 +318,10 @@ class Stack:
         if not remote_path:
             remote_path = self.__cwd
 
-        file = join(remote_path, file.lstrip("/"))
+        with open(output_path, 'wb') as output:
+            self.download_into(file, output, remote_path)
 
-        try:
-            self.webdav.download(file.lstrip("/"), output_path)
-
-        except WebDavException as e:
-            raise StackException(e)
-
-    def download_into(self, file: str, buffer: Union[BufferedIOBase, BytesIO]=None, remote_path: str=None):
+    def download_into(self, file: str, buffer: Union[BufferedIOBase, BytesIO, BinaryIO]=None, remote_path: str=None):
         """
         Download a file from your STACK account
         :param file: File name to download
@@ -354,11 +343,12 @@ class Stack:
                 "use BytesIO or open your file in 'wb' mode.")
 
         try:
-            self.webdav.download_to(buffer, file.lstrip("/"))
+            resp = self.http.webdav('GET', file, stream=True)
+            shutil.copyfileobj(resp.raw, buffer)
             buffer.seek(0)
             return buffer
 
-        except WebDavException as e:
+        except RequestException as e:
             raise StackException(e)
 
     def mkdir(self, name: str, path: str=None) -> StackDirectory:
@@ -374,10 +364,10 @@ class Stack:
         path = join(path, name)
 
         try:
-            self.webdav.mkdir(path)
+            self.http.webdav('MKCOL', path)
             return self.directory(path)
 
-        except WebDavException as e:
+        except RequestException as e:
             raise StackException(e)
 
     @property

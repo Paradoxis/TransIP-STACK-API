@@ -19,7 +19,6 @@ class StackUser:
         self._props = props or {}
         self._stack = stack
         self._http = stack.http
-        self._webdav = stack.webdav
 
     @property
     def name(self) -> str:

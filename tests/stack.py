@@ -8,8 +8,7 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
-from requests import Response
-from webdav.exceptions import WebDavException
+from requests import Response, RequestException
 
 from transip_stack import Stack, StackException
 from transip_stack.nodes import StackDirectory, StackFile
@@ -203,7 +202,7 @@ class TransIpStackTestCase(TestCase):
             self.assertEqual(stack.cwd, '/' + self.PREFIX + '/foo/bar/')
 
             with self.assertRaises(StackException):
-                with patch.object(stack.webdav, 'mkdir', side_effect=WebDavException):
+                with patch.object(stack.http, 'webdav', side_effect=RequestException):
                     stack.mkdir('baz')
 
             stack.cd('/' + self.PREFIX + '/foo/bar/')
@@ -215,7 +214,7 @@ class TransIpStackTestCase(TestCase):
             file = BytesIO(b'Hello world')
             file.seek(0)
 
-            result = stack.upload(file, name='hello.txt')
+            result = stack.upload(file, remote='hello.txt')
             self.assertIsInstance(result, StackFile)
             self.assertEqual(result.directory, '/' + self.PREFIX + '/foo/bar/')
             self.assertEqual(result.path, '/' + self.PREFIX + '/foo/bar/hello.txt')
@@ -256,22 +255,22 @@ class TransIpStackTestCase(TestCase):
                 output = join(directory, 'foo.txt')
                 stack.download('hello.txt', output_path=output)
 
-                with self.assertRaises(StackException):
-                    with patch.object(result._webdav, 'download', side_effect=WebDavException):
-                        stack.download('hello.txt', output_path=output)
-
-                with self.assertRaises(StackException):
-                    with patch.object(result._webdav, 'download_to', side_effect=WebDavException):
-                        stack.download_into('hello.txt')
-
                 with open(output) as fd:
                     self.assertEqual(fd.read(), 'Hello world')
 
-                stack.upload(join(directory, 'foo.txt'), name='foo.txt')
+                with self.assertRaises(StackException):
+                    with patch.object(result._http, 'webdav', side_effect=RequestException):
+                        stack.download('hello.txt', output_path=output)
 
                 with self.assertRaises(StackException):
-                    with patch.object(result._webdav, 'upload_from', side_effect=WebDavException):
-                        stack.upload(join(directory, 'foo.txt'), name='foo.txt')
+                    with patch.object(result._http, 'webdav', side_effect=RequestException):
+                        stack.download_into('hello.txt')
+
+                stack.upload(join(directory, 'foo.txt'), remote='foo.txt')
+
+                with self.assertRaises(StackException):
+                    with patch.object(result._http, 'webdav', side_effect=RequestException):
+                        stack.upload(join(directory, 'foo.txt'), remote='foo.txt')
 
                 with self.assertRaises(StackException):
                     stack.upload(BytesIO(b'Hello world'))
@@ -306,7 +305,7 @@ class TransIpStackTestCase(TestCase):
             self.assertEqual(result.directory, '/' + self.PREFIX + '/')
 
             with self.assertRaises(StackException):
-                with patch.object(result._webdav, 'move', side_effect=WebDavException):
+                with patch.object(result._http, 'webdav', side_effect=RequestException):
                     result.move('foo.txt')
 
             stack.cd('/' + self.PREFIX + '/')

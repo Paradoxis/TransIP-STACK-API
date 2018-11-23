@@ -1,9 +1,10 @@
 from abc import abstractmethod
+from json import JSONDecodeError
 from posixpath import basename, dirname, join, realpath
 from datetime import date, datetime
 from typing import Union
 
-from webdav.exceptions import WebDavException
+from requests import RequestException
 
 from transip_stack.exceptions import StackException
 
@@ -40,7 +41,6 @@ class StackNode:
         self._props = props or {}
         self._stack = stack
         self._http = stack.http
-        self._webdav = stack.webdav
 
     @property
     def exists(self) -> bool:
@@ -150,7 +150,10 @@ class StackNode:
         if resp.status_code != 200:
             pass
 
-        self._props.update(resp.json())
+        try:
+            self._props.update(resp.json())
+        except JSONDecodeError:
+            pass
 
     def move(self, path: str):
         """
@@ -167,11 +170,13 @@ class StackNode:
             path = join(self.directory, path.lstrip('./'))
 
         try:
-            self._webdav.move(self.path, path)
+            dest = join(self._http.webdav_base_url, path.lstrip('/'))
+            resp = self._http.webdav('MOVE', self.path, headers={'Destination': dest})
+            assert resp.status_code in (201, 403), 'Expected 201 (created) status code'
             self._props["path"] = path
             self.refresh()
 
-        except WebDavException as e:
+        except (RequestException, AssertionError) as e:
             raise StackException(e)
 
     def favorite(self):
