@@ -1,4 +1,7 @@
+from requests import Response
 
 
 class StackException(Exception):
-    pass
+    def __init__(self, msg, resp: Response = None):
+        super(StackException, self).__init__(msg)
+        self.response = resp

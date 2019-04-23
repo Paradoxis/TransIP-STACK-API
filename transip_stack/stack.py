@@ -29,7 +29,7 @@ class Stack:
         self.__logged_in = False
         self.__cwd = "/"
 
-        self.ls_buffer_limit = 1000           # Default: 50
+        self.ls_buffer_limit = 1000  # Default: 50
         self.enforce_password_policy = False  # Yeah, passwords aren't enforced server side.
 
         self.http = StackHTTP(
@@ -76,7 +76,7 @@ class Stack:
             logging.debug("Logged in successfully")
         else:
             logging.debug("No redirect detected in login request, invalid password.")
-            raise StackException("Invalid username or password.")
+            raise StackException("Invalid username or password.", resp=resp)
 
     def logout(self) -> None:
         """
@@ -103,7 +103,7 @@ class Stack:
         """
         return self.cwd
 
-    def __files(self, path: str, offset: int, query: str="", order: str="asc") -> dict:
+    def __files(self, path: str, offset: int, query: str = "", order: str = "asc") -> dict:
         """
         Load the files metadata of the current directory
         :return: None
@@ -115,7 +115,7 @@ class Stack:
 
         return self.http.get("/api/files", params=params).json()
 
-    def cd(self, path: str="/") -> StackDirectory:
+    def cd(self, path: str = "/") -> StackDirectory:
         """
         Change the current STACK working directory
         :param path: Path to change to, default is the root directory ('/')
@@ -130,7 +130,7 @@ class Stack:
         self.__cwd = path
         return directory
 
-    def walk(self, path: str=None, order: str="asc") -> Iterable[StackFile]:
+    def walk(self, path: str = None, order: str = "asc") -> Iterable[StackFile]:
         """
         Recursively walk through the entire directory tree, yielding
         each file in all directories
@@ -151,7 +151,7 @@ class Stack:
             else:
                 yield node
 
-    def ls(self, search: str="", order: str="asc", path: str=None) -> Iterable[Union[StackFile, StackDirectory]]:
+    def ls(self, search: str = "", order: str = "asc", path: str = None) -> Iterable[Union[StackFile, StackDirectory]]:
         """
         List the current (or other) directory
         :param path: Path to list, optional (default: CWD)
@@ -226,10 +226,10 @@ class Stack:
         resp = self.http.get("/api/pathinfo", params={"path": path})
 
         if resp.status_code == 404:
-            raise StackException('No such file or directory.')
+            raise StackException('No such file or directory.', resp=resp)
 
         if resp.status_code != 200:
-            raise StackException(resp.text.strip())
+            raise StackException(resp.text.strip(), resp=resp)
 
         return self.__node_to_object(resp.json())
 
@@ -259,7 +259,7 @@ class Stack:
 
         return node
 
-    def upload(self, file, *, remote: str=None) -> StackFile:
+    def upload(self, file, *, remote: str = None) -> StackFile:
         """
         Upload a file to Stack
         :param file: IO pointer or string containing a path to a file
@@ -280,7 +280,7 @@ class Stack:
             "File should either be a path to a file on "
             "disk or an IO type, got: {}".format(type(file)))
 
-    def __upload(self, file, remote: str=None) -> StackFile:
+    def __upload(self, file, remote: str = None) -> StackFile:
         """
         Core logic of the upload, previous method simply converts the name
         to a file IO pointer and passes it to this method
@@ -306,7 +306,7 @@ class Stack:
         except (AssertionError, RequestException) as e:
             raise StackException(e)
 
-    def download(self, file: str, output_path: str, remote_path: str=None) -> None:
+    def download(self, file: str, output_path: str, remote_path: str = None) -> None:
         """
         Download a file from your STACK account to a given path
         :param file: File name to download 
@@ -321,7 +321,9 @@ class Stack:
         with open(output_path, 'wb') as output:
             self.download_into(file, output, remote_path)
 
-    def download_into(self, file: str, buffer: Union[BufferedIOBase, BytesIO, BinaryIO]=None, remote_path: str=None):
+    def download_into(self, file: str, buffer: Union[
+        BufferedIOBase, BytesIO, BinaryIO
+    ] = None, remote_path: str = None):
         """
         Download a file from your STACK account
         :param file: File name to download
@@ -351,7 +353,7 @@ class Stack:
         except RequestException as e:
             raise StackException(e)
 
-    def mkdir(self, name: str, path: str=None) -> StackDirectory:
+    def mkdir(self, name: str, path: str = None) -> StackDirectory:
         """
         Make a new directory
         :param name: Directory name to create
@@ -387,7 +389,8 @@ class Stack:
             if resp.status_code == 403:
                 raise StackException(
                     'Unable to list users, access denied. '
-                    'Please log in with the administrator account.')
+                    'Please log in with the administrator account.',
+                    resp=resp)
 
             users = resp.json()
 
@@ -408,16 +411,17 @@ class Stack:
         if users.status_code == 403:
             raise StackException(
                 'Unable to list users, access denied. '
-                'Please log in with the administrator account.')
+                'Please log in with the administrator account.',
+                resp=users)
 
-        users = users.json()
+        data = users.json()
 
-        if not any(users.get("users") or []):
-            raise StackException("Unable to find user '{}'".format(name))
+        if not any(data.get("users") or []):
+            raise StackException("Unable to find user '{}'".format(name), resp=users)
 
-        return StackUser(stack=self, props=users.get("users", [])[0])
+        return StackUser(stack=self, props=data.get("users", [])[0])
 
-    def create_user(self, name: str, username: str, password: str, disk_quota: int=None) -> StackUser:
+    def create_user(self, name: str, username: str, password: str, disk_quota: int = None) -> StackUser:
         """
         Create a STACK user
         :param name: User to create
@@ -431,26 +435,28 @@ class Stack:
                 raise StackException("Password must be at least 8 characters long!")
 
         disk_quota = int(disk_quota) if disk_quota else -1
-        data = {
+        payload = {
             "action": "create", "user": {
                 "username": username, "newUser": True, "isPublic": False,
                 "password": password, "displayName": name, "quota": disk_quota}}
 
-        resp = self.http.post("/api/users/update", json=[data])
+        resp = self.http.post("/api/users/update", json=[payload])
 
         if resp.status_code == 409:
             raise StackException(
                 "Unable to create user '{}', either you don't have permission "
-                "to do so or the user already exists!".format(username))
+                "to do so or the user already exists!".format(username), resp=resp)
 
-        resp = resp.json()
+        data = resp.json()
 
-        if resp.get("status") != "ok":
-            raise StackException("Expected 'ok' status, got response: {}".format(resp))
+        if data.get("status") != "ok":
+            raise StackException(
+                "Expected 'ok' status, got response: {}".format(data),
+                resp=resp)
 
         return self.user(username)
 
-    def user_or_create_new(self, name: str, username: str, password: str, disk_quota: int=None) -> StackUser:
+    def user_or_create_new(self, name: str, username: str, password: str, disk_quota: int = None) -> StackUser:
         """
         Get a user on STACK or create a new one if not found
         :param name: Name of the user
