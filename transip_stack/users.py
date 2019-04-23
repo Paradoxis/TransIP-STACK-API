@@ -71,12 +71,14 @@ class StackUser:
         :return: None
         """
         data = {"action": "delete", "user": self._props}
-        resp = self._http.post("/api/users/update", json=[data], csrf=True).json()
+        resp = self._http.post("/api/users/update", json=[data], csrf=True)
+        resp_data = resp.json()
 
-        if not resp.get("status") == "ok":
+        if not resp_data.get("status") == "ok":
             raise StackException(
                 "Unable to delete user '{}', expected status 'ok' "
-                "and got response: {}".format(self.username, resp))
+                "and got response: {}".format(self.username, resp_data),
+                resp=resp)
 
     def save(self):
         """
@@ -85,12 +87,14 @@ class StackUser:
         """
         resp = self._http.post("/api/users/update", json=[
             {"action": "update", "user": self._props}
-        ], csrf=True).json()
+        ], csrf=True)
 
-        if resp.get("status") != "ok":
+        resp_data = resp.json()
+
+        if resp_data.get("status") != "ok":
             raise StackException(
                 "Unable to set properties. Expected status 'ok' "
-                "and got response: {}".format(resp))
+                "and got response: {}".format(resp_data), resp=resp)
 
     def __repr__(self):
         return "<StackUser name={!r}>".format(self.name)
