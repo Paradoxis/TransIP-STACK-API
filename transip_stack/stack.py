@@ -172,7 +172,7 @@ class Stack:
 
         while amount is None or (amount is not None and offset < int(amount)):
             files = self.__files(path, offset, query=search, order=order)
-            offset += self.ls_buffer_limit
+            offset += len(files["nodes"])
             amount = int(files.get("amount"))
             yield from self.__nodes_to_objects(files.get("nodes") or [])
 

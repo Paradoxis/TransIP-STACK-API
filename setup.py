@@ -27,7 +27,8 @@ REQUIRED = [
 
 EXTRAS = {
     'dev': [
-        'twine'
+        'twine',
+        'wheel'
     ],
     'test': [
         'codecov',
