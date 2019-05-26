@@ -2,6 +2,8 @@
 omit =
     tests/*
     venv/*
+    transip_stack/__main__.py
+    transip_stack/utils.py
 exclude_lines =
     def __repr__
     if __name__ == .__main__.:

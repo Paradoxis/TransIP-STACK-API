@@ -36,6 +36,12 @@ EXTRAS = {
     ]
 }
 
+ENTRY_POINTS = {
+    'console_scripts': [
+        'stack=transip_stack.__main__:main',
+    ]
+}
+
 # The rest you shouldn't have to touch too much :)
 # ------------------------------------------------
 # Except, perhaps the License and Trove Classifiers!
@@ -111,6 +117,7 @@ setup(
     packages=find_packages(exclude=('tests',)),
     install_requires=REQUIRED,
     extras_require=EXTRAS,
+    entry_points=ENTRY_POINTS,
     include_package_data=True,
     license='MIT',
     classifiers=[

@@ -27,12 +27,31 @@ from transip_stack import Stack, StackException
 
 with Stack(username="foo", password="bar", hostname="stack.example.com") as stack:
     try:
-        url = stack.upload("local-foo.txt", "remote-foo.txt").share()
+        url = stack.upload("local-foo.txt", remote="remote-foo.txt").share()
         print("[+] You can download remote-foo.txt at: {}".format(url))
             
     except StackException as e:
         print("[!] Error: {}".format(e))
 ```
+
+The package also ships with a command line interface to easily upload
+files in your current working directory to stack. Configuration is done
+via environment variables:
+
+``` 
+$ export STACK_USERNAME=...
+$ export STACK_PASSWORD=...
+$ export STACK_HOSTNAME=...
+$ export STACK_DIRECTORY=...
+```
+
+Then simply use the tool:
+
+``` 
+$ stack upload .
+```
+
+Note that the command line interface is a work in progress
 
 ## Examples
 
