@@ -1,5 +1,5 @@
+import mimetypes
 from abc import abstractmethod
-from json import JSONDecodeError
 from posixpath import basename, dirname, join, realpath
 from datetime import date, datetime
 from typing import Union
@@ -48,7 +48,9 @@ class StackNode:
 
     @property
     def type(self) -> str:
-        return self._props.get("mimetype")
+        # All mimetypes return 'application/octet-stream', so we'll have to use mimetypes
+        # to guess the mime type correctly based on the file name.
+        return mimetypes.guess_type(self.path)[0]
 
     @property
     def size(self):

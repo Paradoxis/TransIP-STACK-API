@@ -32,7 +32,7 @@ def main():
         'File or directory to upload, download or inspect. Defaults to the '
         'current working directory.'))
 
-    args.add_argument('-t', '--threads', type=int, default=16)
+    args.add_argument('-t', '--threads', type=int, default=8)
 
     args = args.parse_args()
 
@@ -60,8 +60,12 @@ def log(message, *, prefix='*'):
 
 def upload(stack, args):
     def upload_file(file):
-        stack.upload(file)
-        log(f'Uploaded: {file!r}')
+        try:
+            stack.file(file)
+            log(f'Skipping: {file!r} (already exists)')
+        except StackException:
+            stack.upload(file)
+            log(f'Uploaded: {file!r}')
 
     if os.path.isfile(args.file_or_directory):
         return upload_file(args.file_or_directory)

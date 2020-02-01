@@ -219,7 +219,7 @@ class TransIpStackTestCase(TestCase):
             self.assertEqual(result.directory, '/' + self.PREFIX + '/foo/bar/')
             self.assertEqual(result.path, '/' + self.PREFIX + '/foo/bar/hello.txt')
             self.assertEqual(result.name, 'hello.txt')
-            self.assertEqual(result.type, 'application/text')
+            self.assertEqual(result.type, 'text/plain')
             self.assertEqual(result.size, len('Hello world'))
             self.assertEqual(result.exists, True)
             self.assertEqual(result.is_shared, False)
