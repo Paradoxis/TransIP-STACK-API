@@ -4,6 +4,7 @@ import io
 import os
 import re
 import sys
+import warnings
 from shutil import rmtree
 
 from setuptools import find_packages, setup, Command
@@ -101,6 +102,13 @@ class UploadCommand(Command):
         os.system('git push --tags')
 
         sys.exit()
+
+
+# Log deprecation warning
+warnings.warn(
+    'Due to the decision of TransIP to end support for free accounts '
+    'the package "transip-stack-api" will no longer be maintained.',
+    DeprecationWarning)
 
 
 # Where the magic happens:
