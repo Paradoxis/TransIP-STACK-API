@@ -5,6 +5,14 @@
 
 Unofficial wrapper for the TransIP STACK API, written in Python 3
 
+## Deprecation
+Unfortunately due to [a decicsion over at TransIP](https://web.archive.org/web/20201205161202/https://www.transip.nl/stack/) 
+going forward STACK will no longer be free and all free accounts will be removed by February 12th 2021. As a result, I have 
+decided to officially end support of this library as I personally believe there are far better quality cloud storage providers 
+for the same price.
+
+------------------------------------------------------------------------------------------------------------------------------
+
 ## Installation
 To install the library, simply install it using pip:
 
